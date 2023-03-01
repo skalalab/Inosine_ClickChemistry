@@ -29,8 +29,8 @@ for path_czi in list_czi_files[:]:
     
     im_toxo_mask = im[0,...]
     toxo_mask = kmeans_threshold(im_toxo_mask, 
-                                 k=2,
-                                 n_brightest_clusters=1)
+                                 k=4,
+                                 n_brightest_clusters=2)
     
     compare_images('original', im_toxo_mask, 
                    'mask',toxo_mask,
