@@ -21,8 +21,8 @@ list_str_path_generated_masks = list(map(str,list(path_project.rglob("*_mask_tox
 
 
 
-index_start = 0# remember lists are zero index 
-index_end =  3 # up to but not including
+index_start = 10# remember lists are zero index 
+index_end =  12 # up to but not including
 # ITERATE THROUGH ALL THE IMAGES
 for path_mask in list_str_path_generated_masks[index_start : index_end]:
     pass
@@ -74,8 +74,6 @@ for path_mask in list_str_path_generated_masks[index_start : index_end]:
     layer_mask.opacity = 0.4
     viewer.show(block=True)
     
-
-
     # # SAVE MASKS
     # path_im_output = path_mask / path_mask.name
     print(path_mask)

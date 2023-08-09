@@ -7,17 +7,27 @@ mpl.rcParams['figure.dpi'] = 300
 import tifffile
 import czifile
 
+from natsort import natsorted
+
 import numpy as np
 import re
+
+from skimage.morphology import label
+
+from skimage.filters import threshold_multiotsu
 
 import cell_analysis_tools as cat
 from cell_analysis_tools.visualization import compare_images
 from cell_analysis_tools.image_processing import kmeans_threshold
+
+import pandas as pd
 #%%
 
 path_project = Path(r"Z:\0-Projects and Experiments\GG - ClickChemistry")
 list_czi_files = list(path_project.rglob("*.czi"))
 
+
+df = pd.DataFrame()
 
 for path_czi in list_czi_files[:]:
     pass
@@ -27,17 +37,120 @@ for path_czi in list_czi_files[:]:
 
     im = czifile.imread(path_czi).squeeze()
     
-    im_toxo_mask = im[0,...]
-    toxo_mask = kmeans_threshold(im_toxo_mask, 
-                                 k=4,
-                                 n_brightest_clusters=2)
+    bool_show_images = False
     
-    compare_images('original', im_toxo_mask, 
-                   'mask',toxo_mask,
-                   suptitle=f"{path_czi.name}")
+    # print show different channels and their indices
+    if bool_show_images:
+        for idx in range(len(im)):
+            pass
+            plt.title(f"index: {idx}")
+            plt.imshow(im[idx,...])
+            plt.show()
+    
+    # Channels:
+    ch_toxo = 0 # red 
+    ch_DIC = 1 # green
+    ch_inosine = 2 #  
+    ch_DAPI = 3 # DIC HFF
+    
+    im_toxo = im[ch_toxo,...]
+    # toxo_mask = kmeans_threshold(im_toxo, 
+    #                              k=4,
+    #                              n_brightest_clusters=2)
+    
+    # This creates initial toxo mask that is revised by Gina  
+    ##### tifffile.imwrite(Path(path_output) / f"{base_name}_mask_toxo.tiff", toxo_mask)
     
     
+    #### inosine 
+    im_inosine = im[ch_inosine,...]
+    thresh_inosine = threshold_multiotsu(im_inosine, 2)
+    
+    mask_inosine = im_inosine > thresh_inosine[-1:]
+    if bool_show_images:
+        compare_images('original inosine', im_inosine,
+                        'mask', mask_inosine,
+                        suptitle=f"\n{path_czi}")
+    
+    #### COMPUTE overlap
+    
+    # Load toxo mask
     path_output = list(filter(re.compile(f".*{base_name}.*").search, list_folders_in_dir))[0]
     # save mask
     
-    tifffile.imwrite(Path(path_output) / f"{base_name}_mask_toxo.tiff", toxo_mask)
+    mask_toxo = tifffile.imread(Path(path_output) / f"{base_name}_mask_toxo.tiff")
+    mask_toxo = label(mask_toxo)
+    
+    if bool_show_images:
+        compare_images('im_toxo', im_toxo,
+                        'toxo mask', mask_toxo, 
+                        suptitle=f"{path_czi.name}")
+
+    # iterate through toxo regions
+    list_toxo_labels = list(np.unique(mask_toxo))
+    list_toxo_labels.remove(0)
+    
+    for label_toxo in list_toxo_labels:
+        pass
+    
+        # populate dataframe
+        
+        df_cell = pd.DataFrame()
+        _, host_cell, toxo_strain = path_czi.parent.parent.name.split(" ")
+        
+        
+        #
+        mask_single_toxo = mask_toxo == label_toxo
+        mask_intra_inosine = mask_single_toxo * mask_inosine
+        
+        area_toxo = np.sum(mask_single_toxo)
+        area_intra_inosine = np.sum(mask_intra_inosine)
+        percent_intra_inosine = area_intra_inosine / area_toxo
+        
+        ## visualize overlap
+        if bool_show_images:
+            compare_images('single toxo mask', mask_single_toxo, 
+                            'mask_intra_inosine', mask_intra_inosine,
+                            suptitle=f"{path_czi.name} \ntoxo_label={label_toxo} | percent_intra_inosine: {percent_intra_inosine:.3f}")
+        
+        dict_properties = {
+            'file_name' : path_czi.name,
+            'toxo_label' : label_toxo,
+            'path_file' : str(path_czi),
+            'replicate' : int(path_czi.parent.name[:1]),
+            'Host Cell' : host_cell,
+            'Toxoplasma Strain' : toxo_strain,
+            'area_inosine' : area_intra_inosine,
+            'area_toxo' : area_toxo,
+            'percent_inosine_in_toxo' : percent_intra_inosine
+            }
+        
+        df_single_roi = pd.DataFrame(dict_properties, index=[0])
+        
+        df = pd.concat([df, df_single_roi], ignore_index=True)
+        
+
+    
+        
+#%% plots
+
+
+import seaborn as sns
+
+
+df['conditions'] = df['Host Cell'] + "_"+ df['Toxoplasma Strain']
+
+
+
+ax = sns.swarmplot(df, x='conditions', y='percent_inosine_in_toxo', hue='replicate')
+sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
+
+
+
+
+
+
+
+
+
+
