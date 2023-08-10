@@ -20,6 +20,7 @@ import cell_analysis_tools as cat
 from cell_analysis_tools.visualization import compare_images
 from cell_analysis_tools.image_processing import kmeans_threshold
 
+from tqdm import tqdm
 import pandas as pd
 #%%
 
@@ -29,7 +30,7 @@ list_czi_files = list(path_project.rglob("*.czi"))
 
 df = pd.DataFrame()
 
-for path_czi in list_czi_files[:]:
+for path_czi in tqdm(list_czi_files[:]): # threshold_multiosu slow on 11:12 
     pass
     
     base_name = path_czi.stem
@@ -41,19 +42,29 @@ for path_czi in list_czi_files[:]:
     
     # print show different channels and their indices
     if bool_show_images:
+        fig, ax = plt.subplots(1,4, figsize=(10,3))
+        fig.suptitle(f"{path_czi}")
         for idx in range(len(im)):
             pass
-            plt.title(f"index: {idx}")
-            plt.imshow(im[idx,...])
-            plt.show()
+            ax[idx].set_title(f"index: {idx}")
+            ax[idx].set_axis_off()
+            ax[idx].imshow(im[idx,...])
+        plt.show()
+            
+            # plt.title(f"index: {idx}")
+            # plt.imshow(im[idx,...])
+            # plt.show()
     
     # Channels:
     ch_toxo = 0 # red 
-    ch_DIC = 1 # green
-    ch_inosine = 2 #  
+    ch_DIC = 1 # 
+    ch_inosine = 2 # green
     ch_DAPI = 3 # DIC HFF
     
     im_toxo = im[ch_toxo,...]
+    
+    ### NOTE: These lines of code were how the initial toxo masks were created 
+    ### and then were revised by Gina
     # toxo_mask = kmeans_threshold(im_toxo, 
     #                              k=4,
     #                              n_brightest_clusters=2)
@@ -64,13 +75,29 @@ for path_czi in list_czi_files[:]:
     
     #### inosine 
     im_inosine = im[ch_inosine,...]
-    thresh_inosine = threshold_multiotsu(im_inosine, 2)
     
-    mask_inosine = im_inosine > thresh_inosine[-1:]
-    if bool_show_images:
-        compare_images('original inosine', im_inosine,
-                        'mask', mask_inosine,
-                        suptitle=f"\n{path_czi}")
+    # thresh_inosine = threshold_multiotsu(im_inosine, 4)
+    
+    # mask_inosine = im_inosine > thresh_inosine[-1:]
+    # if bool_show_images:
+    #     compare_images('original inosine', im_inosine,
+    #                     'mask', mask_inosine,
+    #                     suptitle=f"\n{path_czi}")
+        
+    
+    # using multiotsu
+    # thresh_inosine = threshold_multiotsu(im_inosine, 7)
+    # mask_inosine = im_inosine > thresh_inosine[-1:]
+    
+    # using kmeans 
+    k = 7
+    keep = 2
+    mask_inosine = kmeans_threshold(im_inosine, k=k, n_brightest_clusters=keep)
+    
+    # if bool_show_images:
+    compare_images('original inosine', im_inosine,
+                    'mask', mask_inosine,
+                    suptitle=f"\n{path_czi}")
     
     #### COMPUTE overlap
     
@@ -94,12 +121,9 @@ for path_czi in list_czi_files[:]:
         pass
     
         # populate dataframe
-        
         df_cell = pd.DataFrame()
         _, host_cell, toxo_strain = path_czi.parent.parent.name.split(" ")
         
-        
-        #
         mask_single_toxo = mask_toxo == label_toxo
         mask_intra_inosine = mask_single_toxo * mask_inosine
         
@@ -130,19 +154,15 @@ for path_czi in list_czi_files[:]:
         df = pd.concat([df, df_single_roi], ignore_index=True)
         
 
-    
-        
 #%% plots
 
 
 import seaborn as sns
 
-
 df['conditions'] = df['Host Cell'] + "_"+ df['Toxoplasma Strain']
 
-
-
 ax = sns.swarmplot(df, x='conditions', y='percent_inosine_in_toxo', hue='replicate')
+plt.suptitle(f"inosine k: {k} | keep: {keep}")
 sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
 
 
