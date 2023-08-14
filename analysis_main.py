@@ -30,7 +30,7 @@ list_czi_files = list(path_project.rglob("*.czi"))
 
 df = pd.DataFrame()
 
-for path_czi in tqdm(list_czi_files[:]): # threshold_multiosu slow on 11:12 
+for path_czi in tqdm(list_czi_files[:1]): # threshold_multiosu slow on 11:12 
     pass
     
     base_name = path_czi.stem
@@ -38,7 +38,7 @@ for path_czi in tqdm(list_czi_files[:]): # threshold_multiosu slow on 11:12
 
     im = czifile.imread(path_czi).squeeze()
     
-    bool_show_images = False
+    bool_show_images = True
     
     # print show different channels and their indices
     if bool_show_images:
@@ -91,17 +91,18 @@ for path_czi in tqdm(list_czi_files[:]): # threshold_multiosu slow on 11:12
     
     
     # set specific k and keep prameters for images
-    dict_parameters = {
-        'Snap-483' : {'k': 6, 'keep': 1}
-        }
+    # dict_parameters = {
+    #     'Snap-483' : {'k': 7, 'keep': 2},
+    #     'Snap-482' : {'k': 6, 'keep': 1},
+    #     }
     
-    if base_name in dict_parameters:
-        k = dict_parameters[base_name]['k']
-        keep = dict_parameters[base_name]['keep']
-    else: # general paraks for rest of image 
+    # if base_name in dict_parameters:
+    #     k = dict_parameters[base_name]['k']
+    #     keep = dict_parameters[base_name]['keep']
+    # else: # general paraks for rest of image 
     # using kmeans 
-        k = 7
-        keep = 2
+    k = 4
+    keep = 1
         
         
     mask_inosine = kmeans_threshold(im_inosine, k=k, n_brightest_clusters=keep)
