@@ -89,9 +89,21 @@ for path_czi in tqdm(list_czi_files[:]): # threshold_multiosu slow on 11:12
     # thresh_inosine = threshold_multiotsu(im_inosine, 7)
     # mask_inosine = im_inosine > thresh_inosine[-1:]
     
+    
+    # set specific k and keep prameters for images
+    dict_parameters = {
+        'Snap-483' : {'k': 6, 'keep': 1}
+        }
+    
+    if base_name in dict_parameters:
+        k = dict_parameters[base_name]['k']
+        keep = dict_parameters[base_name]['keep']
+    else: # general paraks for rest of image 
     # using kmeans 
-    k = 7
-    keep = 2
+        k = 7
+        keep = 2
+        
+        
     mask_inosine = kmeans_threshold(im_inosine, k=k, n_brightest_clusters=keep)
     
     # if bool_show_images:
