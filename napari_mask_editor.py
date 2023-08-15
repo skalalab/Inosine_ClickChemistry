@@ -27,6 +27,7 @@ list_czi_files = [str(p) for p in list(path_project.rglob("*.czi"))]
 
 index_start = 1# remember lists are zero index 
 index_end =  3 # up to but not including
+
 # ITERATE THROUGH ALL THE IMAGES
 for path_mask in list_str_path_generated_masks[index_start : index_end]:
     pass
