@@ -30,15 +30,14 @@ list_czi_files = list(path_project.rglob("*.czi"))
 
 df = pd.DataFrame()
 
-for path_czi in tqdm(list_czi_files[:1]): # threshold_multiosu slow on 11:12 
+for idx, path_czi in tqdm(enumerate(list_czi_files[118:119])): # threshold_multiosu slow on 11:12 
     pass
-    
     base_name = path_czi.stem
     list_folders_in_dir = [str(p) for p in path_czi.parent.glob("*") if p.is_dir()]
 
     im = czifile.imread(path_czi).squeeze()
     
-    bool_show_images = True
+    bool_show_images = False
     
     # print show different channels and their indices
     if bool_show_images:
@@ -91,18 +90,23 @@ for path_czi in tqdm(list_czi_files[:1]): # threshold_multiosu slow on 11:12
     
     
     # set specific k and keep prameters for images
-    # dict_parameters = {
-    #     'Snap-483' : {'k': 7, 'keep': 2},
-    #     'Snap-482' : {'k': 6, 'keep': 1},
-    #     }
+    dict_parameters = {
+        # 'Snap-483' : {'k': 7, 'keep': 2},
+        # 'Snap-482' : {'k': 6, 'keep': 1},
+        # 'Snap-494' : {'k': 7, 'keep': 1},
+        # 'Snap-497' : {'k': 7, 'keep': 2},
+        'Snap-679' : {'k': 7, 'keep': 1},
+        }
     
-    # if base_name in dict_parameters:
-    #     k = dict_parameters[base_name]['k']
-    #     keep = dict_parameters[base_name]['keep']
-    # else: # general paraks for rest of image 
+    if base_name in dict_parameters:
+        k = dict_parameters[base_name]['k']
+        keep = dict_parameters[base_name]['keep']
+    else: # general paraks for rest of image 
     # using kmeans 
-    k = 4
-    keep = 1
+        k = 7
+        keep = 2
+        
+
         
         
     mask_inosine = kmeans_threshold(im_inosine, k=k, n_brightest_clusters=keep)
@@ -110,7 +114,7 @@ for path_czi in tqdm(list_czi_files[:1]): # threshold_multiosu slow on 11:12
     # if bool_show_images:
     compare_images('original inosine', im_inosine,
                     'mask', mask_inosine,
-                    suptitle=f"\n{path_czi}")
+                    suptitle=f"{idx} | \n{path_czi}")
     
     #### COMPUTE overlap
     

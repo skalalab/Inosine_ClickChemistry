@@ -17,12 +17,16 @@ import czifile
 path_project = Path(r"Z:\0-Projects and Experiments\GG - ClickChemistry")
 
 
-list_str_path_generated_masks = list(map(str,list(path_project.rglob("*_mask_toxo.tiff"))))
+# list_str_path_generated_masks = list(map(str,list(path_project.rglob("*_mask_toxo.tiff"))))
+
+list_str_path_generated_masks = list(map(str,list(path_project.rglob("*_cellpose.tiff"))))
+
+list_czi_files = [str(p) for p in list(path_project.rglob("*.czi"))]
 
 
 
-index_start = 10# remember lists are zero index 
-index_end =  12 # up to but not including
+index_start = 1# remember lists are zero index 
+index_end =  3 # up to but not including
 # ITERATE THROUGH ALL THE IMAGES
 for path_mask in list_str_path_generated_masks[index_start : index_end]:
     pass
@@ -52,19 +56,20 @@ for path_mask in list_str_path_generated_masks[index_start : index_end]:
     # LOAD IMAGES
     path_mask = Path(path_mask)
     base_name = path_mask.stem.split("_")[0]
-    list_czi_files = [str(p) for p in list(path_mask.parent.parent.glob("*.czi"))]
     path_czifile = list(filter(re.compile(f".*{base_name}.*").search, list_czi_files))[0]
     
     im_czi_data = czifile.imread(path_czifile).squeeze()
     im_czi_data = xr.DataArray(im_czi_data, dims=('c','x','y'),
-                               coords={'c': ['toxo', 'brightfield', 'inosine', 'dapi']})
+                               coords={'c': ['toxo', 'dic', 'inosine', 'dapi']})
     
 
     #change to np.uint16 so we have more values for rois 2^16
     mask = tifffile.imread(path_mask).astype(np.uint16)
     
     # POPULATE VIEWER
-    layer_intensity = viewer.add_image(im_czi_data.sel(c='toxo'), name=Path(path_czifile).name)
+    # layer_intensity = viewer.add_image(im_czi_data.sel(c='toxo'), name=Path(path_czifile).name)
+    layer_intensity = viewer.add_image(im_czi_data.sel(c='inosine'), name=Path(path_czifile).name)
+
     layer_intensity.contrast_limits=(0,50)
     
     layer_mask = viewer.add_labels(mask, 
