@@ -30,7 +30,7 @@ list_czi_files = list(path_project.rglob("*.czi"))
 
 df = pd.DataFrame()
 
-for idx, path_czi in tqdm(enumerate(list_czi_files[118:119])): # threshold_multiosu slow on 11:12 
+for idx, path_czi in tqdm(enumerate(list_czi_files[:10])): # threshold_multiosu slow on 11:12 
     pass
     base_name = path_czi.stem
     list_folders_in_dir = [str(p) for p in path_czi.parent.glob("*") if p.is_dir()]
@@ -111,11 +111,11 @@ for idx, path_czi in tqdm(enumerate(list_czi_files[118:119])): # threshold_multi
         
     mask_inosine = kmeans_threshold(im_inosine, k=k, n_brightest_clusters=keep)
     
-    # if bool_show_images:
-    compare_images('original inosine', im_inosine,
-                    'mask', mask_inosine,
-                    suptitle=f"{idx} | \n{path_czi}")
-    
+    if bool_show_images:
+        compare_images('original inosine', im_inosine,
+                        'mask', mask_inosine,
+                        suptitle=f"{idx} | \n{path_czi}")
+        
     #### COMPUTE overlap
     
     # Load toxo mask
@@ -169,6 +169,12 @@ for idx, path_czi in tqdm(enumerate(list_czi_files[118:119])): # threshold_multi
         df_single_roi = pd.DataFrame(dict_properties, index=[0])
         
         df = pd.concat([df, df_single_roi], ignore_index=True)
+        
+    
+    filename = f"click_chemistry_intracellular_toxo_ionsine_feature.csv"
+    # df.to_csv(path_project / filename, ignore_index=True)
+    
+        
         
 
 #%% plots
