@@ -172,7 +172,9 @@ for idx, path_czi in tqdm(enumerate(list_czi_files[:10])): # threshold_multiosu 
         
     
     filename = f"click_chemistry_intracellular_toxo_ionsine_feature.csv"
-    # df.to_csv(path_project / filename, ignore_index=True)
+    
+    
+    df.to_csv(path_project / filename)
     
         
         
