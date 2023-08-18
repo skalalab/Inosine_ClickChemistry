@@ -24,12 +24,13 @@ list_str_path_generated_masks = list(map(str,list(path_project.rglob("*_cellpose
 list_czi_files = [str(p) for p in list(path_project.rglob("*.czi"))]
 
 
+print(f"Number of czi files found: {len(list_czi_files)}")
 
 index_start = 1# remember lists are zero index 
 index_end =  3 # up to but not including
 
 # ITERATE THROUGH ALL THE IMAGES
-for path_mask in list_str_path_generated_masks[index_start : index_end]:
+for path_mask in list_str_path_generated_masks[index_start -1 : index_end]:
     pass
 
     # CREATE AND MODIFY VIEWER
