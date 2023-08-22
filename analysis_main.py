@@ -28,9 +28,11 @@ path_project = Path(r"Z:\0-Projects and Experiments\GG - ClickChemistry")
 list_czi_files = list(path_project.rglob("*.czi"))
 
 
-df = pd.DataFrame()
+df_toxo_inosine = pd.DataFrame()
+df_cell_inosine = pd.DataFrame()
 
-for idx, path_czi in tqdm(enumerate(list_czi_files[:10])): # threshold_multiosu slow on 11:12 
+
+for idx, path_czi in tqdm(enumerate(list_czi_files[:45])): # threshold_multiosu slow on 11:12 
     pass
     base_name = path_czi.stem
     list_folders_in_dir = [str(p) for p in path_czi.parent.glob("*") if p.is_dir()]
@@ -107,18 +109,15 @@ for idx, path_czi in tqdm(enumerate(list_czi_files[:10])): # threshold_multiosu 
         keep = 2
         
 
-        
-        
+    # CREATE INOSINE MASK 
     mask_inosine = kmeans_threshold(im_inosine, k=k, n_brightest_clusters=keep)
     
     if bool_show_images:
         compare_images('original inosine', im_inosine,
                         'mask', mask_inosine,
                         suptitle=f"{idx} | \n{path_czi}")
-        
-    #### COMPUTE overlap
-    
-    # Load toxo mask
+
+    # LOAD TOXO MASK
     path_output = list(filter(re.compile(f".*{base_name}.*").search, list_folders_in_dir))[0]
     # save mask
     
@@ -130,7 +129,57 @@ for idx, path_czi in tqdm(enumerate(list_czi_files[:10])): # threshold_multiosu 
                         'toxo mask', mask_toxo, 
                         suptitle=f"{path_czi.name}")
 
-    # iterate through toxo regions
+    # LOAD WHOLE CELL MASK
+    mask_cell = tifffile.imread(Path(path_output).parent / f"{base_name}_cellpose.tiff")
+    mask_cell = label(mask_cell)
+    
+    
+    _, host_cell, toxo_strain = path_czi.parent.parent.name.split(" ")
+
+    
+    ############### COMPUTE WHOLE CELL INOSINE QUANTIFICATION
+
+    # create cell mask without toxo
+    mask_cell_no_toxo = mask_cell * np.invert(mask_toxo > 0)
+    
+    # get unique labels for remaining regions
+    list_cell_labels = list(np.unique(mask_cell_no_toxo))
+    list_cell_labels.remove(0)
+    
+    for label_cell in list_cell_labels:
+        pass
+    
+        mask_single_cell = mask_cell == label_cell
+        
+        area_cell = np.sum(mask_single_cell)
+        mask_intra_cell_inosine = mask_single_cell * mask_inosine
+        area_intra_cell_inosine = np.sum(mask_intra_cell_inosine)
+        
+        percent_intra_cell_inosine = area_intra_cell_inosine / area_cell
+        intensity_sum_intra_cell_inosine = np.sum(area_intra_cell_inosine * im_inosine)
+        intensity_mean_intra_cell_inosine =  intensity_sum_intra_cell_inosine/ area_cell
+        
+        
+        dict_properties = {
+            'file_name' : path_czi.name,
+            'label_cell' : label_cell,
+            'path_file' : str(path_czi),
+            'replicate' : int(path_czi.parent.name[:1]),
+            'Host Cell' : host_cell,
+            'Toxoplasma Strain' : toxo_strain,
+            'area_cell' : area_cell,
+            'area_intra_cell_inosine' : area_intra_cell_inosine,
+            'intensity_sum_intra_cell_inosine': intensity_sum_intra_cell_inosine,
+            'intensity_mean_intra_toxo_inosine' : intensity_mean_intra_cell_inosine,
+            'percent_intra_cell_inosine' : area_intra_cell_inosine / area_cell,
+            }
+        
+        df_single_cell_roi = pd.DataFrame(dict_properties, index=[0])
+        
+        df_cell_inosine = pd.concat([df_cell_inosine, df_single_cell_roi], ignore_index=True)
+
+
+    ############### COMPUTE INTRA TOXO INOSINE
     list_toxo_labels = list(np.unique(mask_toxo))
     list_toxo_labels.remove(0)
     
@@ -138,44 +187,51 @@ for idx, path_czi in tqdm(enumerate(list_czi_files[:10])): # threshold_multiosu 
         pass
     
         # populate dataframe
-        df_cell = pd.DataFrame()
-        _, host_cell, toxo_strain = path_czi.parent.parent.name.split(" ")
         
+        # generate overlap mask
         mask_single_toxo = mask_toxo == label_toxo
-        mask_intra_inosine = mask_single_toxo * mask_inosine
+        mask_intra_toxo_inosine = mask_single_toxo * mask_inosine
         
+        # compute area overlap
         area_toxo = np.sum(mask_single_toxo)
-        area_intra_inosine = np.sum(mask_intra_inosine)
-        percent_intra_inosine = area_intra_inosine / area_toxo
+        area_intra_toxo_inosine = np.sum(mask_intra_toxo_inosine)
+        percent_intra_toxo_inosine = area_intra_toxo_inosine / area_toxo
         
+        # integrated intensity of insoine / area of toxo
+        intensity_intra_toxo_inosine = mask_intra_toxo_inosine * im_inosine
+        intensity_mean_intra_toxo_inosine = np.sum(intensity_intra_toxo_inosine) / area_toxo
+
         ## visualize overlap
         if bool_show_images:
             compare_images('single toxo mask', mask_single_toxo, 
-                            'mask_intra_inosine', mask_intra_inosine,
-                            suptitle=f"{path_czi.name} \ntoxo_label={label_toxo} | percent_intra_inosine: {percent_intra_inosine:.3f}")
+                            'mask_intra_inosine', mask_intra_toxo_inosine,
+                            suptitle=f"{path_czi.name} \ntoxo_label={label_toxo} | percent_intra_inosine: {percent_intra_toxo_inosine:.3f}")
         
         dict_properties = {
             'file_name' : path_czi.name,
-            'toxo_label' : label_toxo,
+            'label_toxo' : label_toxo,
             'path_file' : str(path_czi),
             'replicate' : int(path_czi.parent.name[:1]),
             'Host Cell' : host_cell,
             'Toxoplasma Strain' : toxo_strain,
-            'area_inosine' : area_intra_inosine,
+            'area_inosine' : area_intra_toxo_inosine,
             'area_toxo' : area_toxo,
-            'percent_inosine_in_toxo' : percent_intra_inosine
+            'intensity_intra_toxo_inosine': np.sum(intensity_intra_toxo_inosine),
+            'percent_intra_toxo_inosine' : percent_intra_toxo_inosine,
+            'intensity_mean_intra_toxo_inosine' : intensity_mean_intra_toxo_inosine,
             }
         
         df_single_roi = pd.DataFrame(dict_properties, index=[0])
         
-        df = pd.concat([df, df_single_roi], ignore_index=True)
+        df_toxo_inosine = pd.concat([df_toxo_inosine, df_single_roi], ignore_index=True)
         
+    # save intra toxo inosine df
+    filename = f"click_chemistry_intra_toxo_inosine_features.csv"
+    df_toxo_inosine.to_csv(path_project / filename)
     
-    filename = f"click_chemistry_intracellular_toxo_ionsine_feature.csv"
-    
-    
-    df.to_csv(path_project / filename)
-    
+    # save intra cell inosine df
+    filename = f"click_chemistry_intra_cell_inosine_features.csv"
+    df_cell_inosine.to_csv(path_project / filename)
         
         
 
@@ -184,9 +240,9 @@ for idx, path_czi in tqdm(enumerate(list_czi_files[:10])): # threshold_multiosu 
 
 import seaborn as sns
 
-df['conditions'] = df['Host Cell'] + "_"+ df['Toxoplasma Strain']
+df_toxo_inosine['conditions'] = df_toxo_inosine['Host Cell'] + "_"+ df_toxo_inosine['Toxoplasma Strain']
 
-ax = sns.swarmplot(df, x='conditions', y='percent_inosine_in_toxo', hue='replicate')
+ax = sns.swarmplot(df_toxo_inosine, x='conditions', y='percent_inosine_in_toxo', hue='replicate')
 plt.suptitle(f"inosine k: {k} | keep: {keep}")
 sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
 
