@@ -32,7 +32,7 @@ df_toxo_inosine = pd.DataFrame()
 df_cell_inosine = pd.DataFrame()
 
 
-for idx, path_czi in tqdm(enumerate(list_czi_files[:45])): # threshold_multiosu slow on 11:12 
+for idx, path_czi in tqdm(enumerate(list_czi_files[:2])): # threshold_multiosu slow on 11:12 
     pass
     base_name = path_czi.stem
     list_folders_in_dir = [str(p) for p in path_czi.parent.glob("*") if p.is_dir()]
@@ -155,8 +155,9 @@ for idx, path_czi in tqdm(enumerate(list_czi_files[:45])): # threshold_multiosu 
         mask_intra_cell_inosine = mask_single_cell * mask_inosine
         area_intra_cell_inosine = np.sum(mask_intra_cell_inosine)
         
+        #TODO PERCENT AND INTEGRATED INTENSITY SUMMED 
         percent_intra_cell_inosine = area_intra_cell_inosine / area_cell
-        intensity_sum_intra_cell_inosine = np.sum(area_intra_cell_inosine * im_inosine)
+        intensity_sum_intra_cell_inosine = np.sum(mask_intra_cell_inosine * im_inosine)
         intensity_mean_intra_cell_inosine =  intensity_sum_intra_cell_inosine/ area_cell
         
         
